@@ -1,7 +1,7 @@
 # pop-pop-ret
 
 ## Example 
-
+```
 [user@dev pop_pop_ret]$ ./target/release/pop_pop_ret ~/QubesIncoming/kali64/ov.dll 
 Number of virtual core: 8
 /home/user/QubesIncoming/kali64/ov.dll:24da
@@ -43,7 +43,7 @@ Number of virtual core: 8
 /home/user/QubesIncoming/kali64/ov.dll:2ea04
 /home/user/QubesIncoming/kali64/ov.dll:2eda3
 /home/user/QubesIncoming/kali64/ov.dll:2ef74
-
+```
 
 # Bonus: Bash version
 
@@ -69,6 +69,7 @@ done <<< "$result"
 
 ## Example
 
+```
 ./findjump.sh ov.dll 
 24da
 32ec
@@ -109,3 +110,4 @@ ecdd
 2ea04
 2eda3
 2ef74
+```
