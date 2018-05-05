@@ -9,14 +9,14 @@ extern crate serde_derive;
 use docopt::Docopt;
 use glob::glob;
 use regex::Regex;
-use std::{str, collections::HashSet, fs::File, io::prelude::*, path::Path, sync::mpsc,
+use std::{str, collections::HashSet, fs::File, io::prelude::*, sync::mpsc,
           sync::mpsc::{Receiver, Sender}};
 use threadpool::ThreadPool;
 const USAGE: &'static str = "
 Find hexadecimal string inside a file.
 
 Usage:
-  pop_pop_ret <files>... [--regex <regex>] [--bad-bytes <bad_bytes> | --good-bytes <good_bytes>] [--aslr] [--full-path]
+  pop_pop_ret <files>... [--regex <regex>] [--bad-bytes <bad_bytes> | --good-bytes <good_bytes>] [--aslr]
   pop_pop_ret (-h | --help)
 
 Options:
@@ -25,7 +25,6 @@ Options:
   --bad-bytes <bad_bytes>, -b <bad_bytes>       List of forbidden bytes. [default: ]
   --good-bytes <good_bytes>, -g <good_bytes>    List of allowed bytes. [default: ]
   --aslr, -a                                    No bad/good char check on the image_base + offset adresse.
-  --full-path, -f                               Display full path
 
 Example:
 pop_pop_ret ./*.dll -g '\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0b\x0c\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x20\x21\x22\x23\x24\x25\x26\x27\x28\x29\x2a\x2b\x2c\x2d\x2e\x30\x31\x32\x33\x34\x35\x36\x37\x38\x39\x3b\x3c\x3d\x3e\x41\x42\x43\x44\x45\x46\x47\x48\x49\x4a\x4b\x4c\x4d\x4e\x4f\x50\x51\x52\x53\x54\x55\x56\x57\x58\x59\x5a\x5b\x5c\x5d\x5e\x5f\x60\x61\x62\x63\x64\x65\x66\x67\x68\x69\x6a\x6b\x6c\x6d\x6e\x6f\x70\x71\x72\x73\x74\x75\x76\x77\x78\x79\x7a\x7b\x7c\x7d\x7e\x7f'
@@ -38,7 +37,6 @@ struct Args {
     flag_bad_bytes: String,
     flag_good_bytes: String,
     flag_aslr: bool,
-    flag_full_path: bool,
 }
 
 fn parse_bytes(arg: &str) -> HashSet<u8> {
@@ -86,7 +84,6 @@ fn main() {
             let bad_bytes_clone = bad_bytes.clone();
             let good_bytes_clone = good_bytes.clone();
             let aslr = args.flag_aslr.clone();
-            let full_path = args.flag_full_path.clone();
             thread_pool_decompress.execute(move || {
                 let mut hex_array = Vec::new();
                 let mut image_base = 0;
@@ -138,24 +135,12 @@ fn main() {
                             }
                         }
                     }
-                    let filename = Path::new(&string).file_name();
-                    if !full_path {
-                        thread_tx
-                            .send(format!(
-                                "{:?}\t{:x}\t{:x}",
-                                filename.unwrap(),
-                                offset_raw,
-                                offset_and_image_base
-                            ))
-                            .unwrap();
-                    } else {
-                        thread_tx
-                            .send(format!(
-                                "{}\t{:x}\t{:x}",
-                                string, offset_raw, offset_and_image_base
-                            ))
-                            .unwrap();
-                    }
+                    thread_tx
+                        .send(format!(
+                            "{}\t{:x}\t{:x}",
+                            string, offset_raw, offset_and_image_base
+                        ))
+                        .unwrap();
                 }
             });
         }
