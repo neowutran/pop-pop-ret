@@ -9,14 +9,14 @@ extern crate serde_derive;
 use docopt::Docopt;
 use glob::glob;
 use regex::Regex;
-use std::{str, collections::HashSet, fs::File, io::prelude::*, sync::mpsc,
+use std::{str, collections::HashSet, fs::File, io::prelude::*, path::Path, sync::mpsc,
           sync::mpsc::{Receiver, Sender}};
 use threadpool::ThreadPool;
 const USAGE: &'static str = "
 Find hexadecimal string inside a file.
 
 Usage:
-  pop_pop_ret <files>... [--regex <regex>] [--bad-bytes <bad_bytes> | --good-bytes <good_bytes>] [--aslr]
+  pop_pop_ret <files>... [--regex <regex>] [--bad-bytes <bad_bytes> | --good-bytes <good_bytes>] [--aslr] [--full-path]
   pop_pop_ret (-h | --help)
 
 Options:
@@ -24,7 +24,11 @@ Options:
   --regex <regex>, -r <regex>                   Execute regex. [default: (07|17|1F|58|59|5A|5B|5C|5D|5E|5F){2}(C2|C3|CB|CA)]
   --bad-bytes <bad_bytes>, -b <bad_bytes>       List of forbidden bytes. [default: ]
   --good-bytes <good_bytes>, -g <good_bytes>    List of allowed bytes. [default: ]
-  --aslr                                        No bad/good char check on the image_base + offset adresse.
+  --aslr, -a                                    No bad/good char check on the image_base + offset adresse.
+  --full-path, -f                               Display full path
+
+Example:
+pop_pop_ret ./*.dll -g '\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0b\x0c\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x20\x21\x22\x23\x24\x25\x26\x27\x28\x29\x2a\x2b\x2c\x2d\x2e\x30\x31\x32\x33\x34\x35\x36\x37\x38\x39\x3b\x3c\x3d\x3e\x41\x42\x43\x44\x45\x46\x47\x48\x49\x4a\x4b\x4c\x4d\x4e\x4f\x50\x51\x52\x53\x54\x55\x56\x57\x58\x59\x5a\x5b\x5c\x5d\x5e\x5f\x60\x61\x62\x63\x64\x65\x66\x67\x68\x69\x6a\x6b\x6c\x6d\x6e\x6f\x70\x71\x72\x73\x74\x75\x76\x77\x78\x79\x7a\x7b\x7c\x7d\x7e\x7f'
 ";
 
 #[derive(Deserialize)]
@@ -34,6 +38,7 @@ struct Args {
     flag_bad_bytes: String,
     flag_good_bytes: String,
     flag_aslr: bool,
+    flag_full_path: bool,
 }
 
 fn parse_bytes(arg: &str) -> HashSet<u8> {
@@ -42,11 +47,10 @@ fn parse_bytes(arg: &str) -> HashSet<u8> {
         if byte.is_empty() {
             continue;
         }
-        let value = u8::from_str_radix(&byte, 16).expect(&format!(
+        result.insert(u8::from_str_radix(&byte, 16).expect(&format!(
             "Not an hexadecimal string: {}. Expect something like 'FF'",
             &byte
-        ));
-        result.insert(value);
+        )));
     }
     result
 }
@@ -82,6 +86,7 @@ fn main() {
             let bad_bytes_clone = bad_bytes.clone();
             let good_bytes_clone = good_bytes.clone();
             let aslr = args.flag_aslr.clone();
+            let full_path = args.flag_full_path.clone();
             thread_pool_decompress.execute(move || {
                 let mut hex_array = Vec::new();
                 let mut image_base = 0;
@@ -91,7 +96,7 @@ fn main() {
                         let mut file = File::open(string.clone()).expect("file not found");
                         file.read_to_end(&mut binary).unwrap();
                         let res = goblin::Object::parse(&binary).unwrap();
-                        println!("{:#?}", res);
+                        //println!("{:#?}", res);
                         match res {
                             goblin::Object::PE(pe) => match pe.header.optional_header {
                                 Some(header) => {
@@ -106,39 +111,55 @@ fn main() {
                         hex_array.push(format!("{:02X}", element));
                     }
                 }
-                for mat in regex_clone.find_iter(&hex_array.join("")) {
+                'found: for mat in regex_clone.find_iter(&hex_array.join("")) {
                     let offset_raw = mat.start() / 2;
                     let offset_and_image_base = offset_raw + image_base;
 
-                    let byte1_1 = (offset_raw & 0x000000FF) as u8;
-                    let byte2_1 = ((offset_raw & 0x0000FF00) >> 8) as u8;
-                    let byte1_2 = (offset_and_image_base & 0x000000FF) as u8;
-                    let byte2_2 = ((offset_and_image_base & 0x0000FF00) >> 8) as u8;
-                    let byte3_2 = ((offset_and_image_base & 0x00FF0000) >> 16) as u8;
-                    let byte4_2 = ((offset_and_image_base & 0xFF000000) >> 24) as u8;
+                    let byte1_1 = (offset_raw & 0xFF) as u8;
+                    let byte2_1 = ((offset_raw & (0xFF << 8)) >> 8) as u8;
                     if !(byte_allowed(byte1_1, &bad_bytes_clone, &good_bytes_clone)
                         && byte_allowed(byte2_1, &bad_bytes_clone, &good_bytes_clone))
                     {
                         continue;
                     }
 
-                    if !aslr
-                        && (!(byte_allowed(byte1_2, &bad_bytes_clone, &good_bytes_clone)
-                            && byte_allowed(byte2_2, &bad_bytes_clone, &good_bytes_clone)
-                            && byte_allowed(byte3_2, &bad_bytes_clone, &good_bytes_clone)
-                            && byte_allowed(byte4_2, &bad_bytes_clone, &good_bytes_clone)))
-                    {
-                        continue;
+                    let mut offset_and_image_base_bytes = Vec::new();
+                    offset_and_image_base_bytes.push((offset_and_image_base & 0xFF) as u8);
+                    offset_and_image_base_bytes
+                        .push(((offset_and_image_base & (0xFF << 8)) >> 8) as u8);
+                    offset_and_image_base_bytes
+                        .push(((offset_and_image_base & (0xFF << 16)) >> 16) as u8);
+                    offset_and_image_base_bytes
+                        .push(((offset_and_image_base & (0xFF << 24)) >> 24) as u8);
+                    if !aslr {
+                        for byte in offset_and_image_base_bytes {
+                            if !byte_allowed(byte, &bad_bytes_clone, &good_bytes_clone) {
+                                continue 'found;
+                            }
+                        }
                     }
-
-                    let contents =
-                        format!("{}:{:x}:{:x}", string, offset_raw, offset_and_image_base);
-                    thread_tx.send(contents).unwrap();
+                    let filename = Path::new(&string).file_name();
+                    if !full_path {
+                        thread_tx
+                            .send(format!(
+                                "{:?}\t{:x}\t{:x}",
+                                filename.unwrap(),
+                                offset_raw,
+                                offset_and_image_base
+                            ))
+                            .unwrap();
+                    } else {
+                        thread_tx
+                            .send(format!(
+                                "{}\t{:x}\t{:x}",
+                                string, offset_raw, offset_and_image_base
+                            ))
+                            .unwrap();
+                    }
                 }
             });
         }
     }
-
     drop(tx);
     for received in rx {
         println!("{}", received);
