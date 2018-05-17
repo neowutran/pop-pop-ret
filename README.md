@@ -2,47 +2,11 @@
 
 ## Example 
 ```
-[user@dev pop_pop_ret]$ ./target/release/pop_pop_ret ~/QubesIncoming/kali64/ov.dll 
+./target/release/pop_pop_ret ~/QubesIncoming/kali64/dll/* -g '\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0b\x0c\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x20\x21\x22\x23\x24\x25\x26\x27\x28\x29\x2a\x2b\x2c\x2d\x2e\x30\x31\x32\x33\x34\x35\x36\x37\x38\x39\x3b\x3c\x3d\x3e\x41\x42\x43\x44\x45\x46\x47\x48\x49\x4a\x4b\x4c\x4d\x4e\x4f\x50\x51\x52\x53\x54\x55\x56\x57\x58\x59\x5a\x5b\x5c\x5d\x5e\x5f\x60\x61\x62\x63\x64\x65\x66\x67\x68\x69\x6a\x6b\x6c\x6d\x6e\x6f\x70\x71\x72\x73\x74\x75\x76\x77\x78\x79\x7a\x7b\x7c\x7d\x7e\x7f'
 Number of virtual core: 8
-/home/user/QubesIncoming/kali64/ov.dll:24da
-/home/user/QubesIncoming/kali64/ov.dll:32ec
-/home/user/QubesIncoming/kali64/ov.dll:330e
-/home/user/QubesIncoming/kali64/ov.dll:332d
-/home/user/QubesIncoming/kali64/ov.dll:334f
-/home/user/QubesIncoming/kali64/ov.dll:ecdd
-/home/user/QubesIncoming/kali64/ov.dll:102f5
-/home/user/QubesIncoming/kali64/ov.dll:10a33
-/home/user/QubesIncoming/kali64/ov.dll:10f34
-/home/user/QubesIncoming/kali64/ov.dll:1124c
-/home/user/QubesIncoming/kali64/ov.dll:11278
-/home/user/QubesIncoming/kali64/ov.dll:11282
-/home/user/QubesIncoming/kali64/ov.dll:11793
-/home/user/QubesIncoming/kali64/ov.dll:11a40
-/home/user/QubesIncoming/kali64/ov.dll:14e65
-/home/user/QubesIncoming/kali64/ov.dll:15560
-/home/user/QubesIncoming/kali64/ov.dll:16513
-/home/user/QubesIncoming/kali64/ov.dll:16520
-/home/user/QubesIncoming/kali64/ov.dll:16d33
-/home/user/QubesIncoming/kali64/ov.dll:173d6
-/home/user/QubesIncoming/kali64/ov.dll:1796f
-/home/user/QubesIncoming/kali64/ov.dll:179b6
-/home/user/QubesIncoming/kali64/ov.dll:185ed
-/home/user/QubesIncoming/kali64/ov.dll:1b0a8
-/home/user/QubesIncoming/kali64/ov.dll:1b1a4
-/home/user/QubesIncoming/kali64/ov.dll:1b1ae
-/home/user/QubesIncoming/kali64/ov.dll:1ee53
-/home/user/QubesIncoming/kali64/ov.dll:1ef67
-/home/user/QubesIncoming/kali64/ov.dll:1f277
-/home/user/QubesIncoming/kali64/ov.dll:243d6
-/home/user/QubesIncoming/kali64/ov.dll:2643a
-/home/user/QubesIncoming/kali64/ov.dll:2899f
-/home/user/QubesIncoming/kali64/ov.dll:2a0ff
-/home/user/QubesIncoming/kali64/ov.dll:2a3cf
-/home/user/QubesIncoming/kali64/ov.dll:2a3ea
-/home/user/QubesIncoming/kali64/ov.dll:2a446
-/home/user/QubesIncoming/kali64/ov.dll:2ea04
-/home/user/QubesIncoming/kali64/ov.dll:2eda3
-/home/user/QubesIncoming/kali64/ov.dll:2ef74
+/home/user/QubesIncoming/kali64/dll/hpi.dll	111b	6d1d111b
+/home/user/QubesIncoming/kali64/dll/hpi.dll	116e	6d1d116e
+....
 ```
 
 # Bonus: Bash version
