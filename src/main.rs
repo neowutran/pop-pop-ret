@@ -9,8 +9,9 @@ extern crate serde_derive;
 use docopt::Docopt;
 use glob::glob;
 use regex::Regex;
-use std::{str, collections::HashSet, fs::File, io::prelude::*, sync::mpsc,
-          sync::mpsc::{Receiver, Sender}};
+use std::{
+    collections::HashSet, fs::File, io::prelude::*, str, sync::mpsc, sync::mpsc::{Receiver, Sender},
+};
 use threadpool::ThreadPool;
 const USAGE: &'static str = "
 Find hexadecimal string inside a file.
@@ -87,6 +88,7 @@ fn main() {
             thread_pool_decompress.execute(move || {
                 let mut hex_array = Vec::new();
                 let mut image_base = 0;
+                let mut code_size = 0;
                 {
                     let mut binary = Vec::new();
                     {
@@ -98,6 +100,7 @@ fn main() {
                             goblin::Object::PE(pe) => match pe.header.optional_header {
                                 Some(header) => {
                                     image_base = header.windows_fields.image_base as usize;
+                                    code_size = header.standard_fields.size_of_code as usize;
                                 }
                                 _ => (),
                             },
@@ -109,7 +112,7 @@ fn main() {
                     }
                 }
                 'found: for mat in regex_clone.find_iter(&hex_array.join("")) {
-                    let offset_raw = mat.start() / 2;
+                    let offset_raw = (mat.start() / 2) + code_size;
                     let offset_and_image_base = offset_raw + image_base;
 
                     let byte1_1 = (offset_raw & 0xFF) as u8;
