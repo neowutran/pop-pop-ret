@@ -88,7 +88,7 @@ fn main() {
             thread_pool_decompress.execute(move || {
                 let mut hex_array = Vec::new();
                 let mut image_base = 0;
-                let mut code_size = 0;
+                let mut sections = Vec::new();
                 {
                     let mut binary = Vec::new();
                     {
@@ -97,13 +97,15 @@ fn main() {
                         let res = goblin::Object::parse(&binary).unwrap();
                         //println!("{:#?}", res);
                         match res {
-                            goblin::Object::PE(pe) => match pe.header.optional_header {
-                                Some(header) => {
-                                    image_base = header.windows_fields.image_base as usize;
-                                    code_size = header.standard_fields.size_of_code as usize;
+                            goblin::Object::PE(pe) => {
+                                match pe.header.optional_header {
+                                    Some(header) => {
+                                        image_base = header.windows_fields.image_base as usize;
+                                    }
+                                    _ => (),
                                 }
-                                _ => (),
-                            },
+                                sections = pe.sections;
+                            }
                             _ => (),
                         }
                     }
@@ -112,8 +114,24 @@ fn main() {
                     }
                 }
                 'found: for mat in regex_clone.find_iter(&hex_array.join("")) {
-                    let offset_raw = (mat.start() / 2) + code_size;
-                    let offset_and_image_base = offset_raw + image_base;
+                    let mut offset_raw = (mat.start() / 2) as u32;
+                    let mut offset_and_image_base = offset_raw + image_base as u32;
+                    let mut delta: Option<u32> = None;
+                    for section in &sections {
+                        if offset_raw >= section.pointer_to_raw_data
+                            && offset_raw <= section.pointer_to_raw_data + section.size_of_raw_data
+                        {
+                            delta = Some(section.virtual_address - section.pointer_to_raw_data);
+                            break;
+                        }
+                    }
+                    match delta {
+                        Some(value) => {
+                            offset_raw += value;
+                            offset_and_image_base += value;
+                        }
+                        None => panic!("unable to find delta value"),
+                    }
 
                     let byte1_1 = (offset_raw & 0xFF) as u8;
                     let byte2_1 = ((offset_raw & (0xFF << 8)) >> 8) as u8;
