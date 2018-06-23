@@ -55,10 +55,7 @@ fn parse_bytes(arg: &str) -> HashSet<u8> {
 }
 
 fn byte_allowed(byte: u8, bad_bytes: &HashSet<u8>, good_bytes: &HashSet<u8>) -> bool {
-    if bad_bytes.contains(&byte) || (!good_bytes.contains(&byte) && !good_bytes.is_empty()) {
-        return false;
-    }
-    true
+    !bad_bytes.contains(&byte) && (good_bytes.contains(&byte) || good_bytes.is_empty())
 }
 
 fn main() {
