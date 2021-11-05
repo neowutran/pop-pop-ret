@@ -1,4 +1,6 @@
 # pop-pop-ret
+TODO: more "predefined" regex
+TODO: asm to bytes
 
 ## Example 
 ```
